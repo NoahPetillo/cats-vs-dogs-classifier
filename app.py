@@ -27,11 +27,11 @@ def load_image(image_name: str):
 
 @st.cache_resource(show_spinner=False)
 def ensure_model_loaded():
-    """Warm up the cached model so prediction stays snappy on Streamlit Cloud."""
+    """Warm up the cached model so prediction stays true on Streamlit Cloud."""
     return load_model()
 
 
-st.title("Where This CNN Landed")
+st.title("The Process")
 st.write(
     "A walkthrough of how I tuned a convolutional neural network for the Kaggle Cats vs. Dogs "
     "dataset—hyperparameters, mistakes, breakthroughs, and a look at the final learned filters."
@@ -51,34 +51,36 @@ st.markdown(
     """
 | Model | Key Changes | Outcome |
 | --- | --- | --- |
-| model1.pth | lr 0.001, no momentum, CPU | Loss ~0.58 |
-| model2.pth | lr 0.01, momentum 0.09, switched to MPS | Loss ~0.48 |
-| model3.pth | 4 conv blocks, 10 epochs, momentum 0.9 | Loss routinely 0.07–0.30 |
+| model1.pth | lr 0.001, no momentum, ran on CPU |Final train_loss~0.58 |
+| model2.pth | lr 0.01, momentum 0.09, switched to MPS |Final train_loss ~0.48 |
+| model3.pth | 4 conv blocks, 10 epochs, momentum 0.9 | train_loss routinely 0.07–0.30 |
 | Train/Val Split Re-run | 80/20 split, same arch as model3 | Val loss 0.2665, Val acc 0.8930 |
-| model4.pth | Batch size 48, 15 epochs | Train loss 0.146 |
-| model4.pth (50 epochs) | Extended to 50 epochs | Overfitting by epoch 28 (train 0.047 vs val 0.3059) |
+| model4.pth | Batch size 48, 15 epochs | Train loss 0.146, val loss stuck at ~0.3|
+| model4.pth (50 epochs) | Extended to 50 epochs | Overfitting by epoch 28, 50 is too much(train 0.047 vs val 0.3059) |
 | model4.pth tweaks | Removed 4th conv, dropout 0.3, weight decay 0.0001 | Still overfitting |
 | model5.pth | 25 epochs | Train 0.1843, Val 0.3006 |
 | model6.pth | Reduced rotation aug to 7.5° | Train 0.0876, Val 0.3924 |
 | model7.pth | Restored 4th conv, rotation 10°, 25 epochs | Train 0.0831, Val 0.2234, Accuracy 0.9694 |
 """
 )
-st.caption("Note, these val_losses are averages from the total training process. \nEx. val_loss of 0.2234 at end correlated with val loss of 8.586 when not calculated with each training epoch"
+st.caption("Note, these val_losses are averages from the total training process. \nEx. val_loss of 0.2234 in model7 correlated with val loss of 8.586 when not calculated with each training epoch"
            )
 
 st.success(
-    "Lesson learned: the 50-epoch experiment drove the training loss down relentlessly but "
-    "validation loss wobbled upward—classic overtraining. Settling on 25 epochs with the 4th "
+    "Lesson learned: the 50-epoch attemps drove the training loss down relentlessly but "
+    "validation loss wobbled upward noisily-clearly overtraining. Settling on 25 epochs with the 4th "
     "convolutional layer, rotation=10°, dropout=0.3, and weight decay=0.0005 struck the right balance."
+    "NOTE - most likely this could be fine tuned further, but the fourth convolutional layer paired with"
+    "less epochs made the model signifigantly more effecient and accurate"
 )
 
 
-st.header("Loss Curves Across Experiments")
+st.header("Loss Curves Across Models")
 loss_figures = [
     ("model_3_loss_vs_epoch.png", "Model 3 — early boost from deeper feature extractor"),
-    ("model4_loss_vs_epoch.png", "Model 4 — batch size 48, highlights where 50 epochs began to overfit"),
-    ("model5_Loss_vs_Epoch.png", "Model 5 — conservative 25 epochs, but still higher validation loss"),
-    ("model7_Loss_vs_Epoch.png", "Model 7 — final curve with tighter tracking between train/val"),
+    ("model4_loss_vs_epoch.png", "Model 4 — batch size 48, 15 epochs"),
+    ("model5_Loss_vs_Epoch.png", "Model 5 — 50 epochs, but around epoch 15 val_loss stopped improving and became noisy"),
+    ("model7_Loss_vs_Epoch.png", "Model 7 — final curve. Still a difference but val was much steadier better"),
 ]
 
 cols = st.columns(2)
@@ -95,7 +97,7 @@ if structure_img:
     center_col = st.columns([1, 2, 1])[1]
     center_col.image(
         structure_img,
-        caption="Final CNN structure — four conv blocks feeding dense layers.",
+        caption="Final CNN structure — four conv blocks feeding dense layers. Sorry it is blurry, this is the way pytorch loads it",
         use_container_width=True,
     )
 
