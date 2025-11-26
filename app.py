@@ -133,6 +133,7 @@ st.caption(
 )
 
 
+
 st.header("Try the Final Model Yourself")
 st.caption("NOTE: Model works best with close up images of the animals face. It is much more likely to fail"
            "If there is a lot of noise or if the face is not visible")
