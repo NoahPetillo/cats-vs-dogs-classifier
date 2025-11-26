@@ -104,27 +104,22 @@ if structure_img:
 
 st.header("What Each Convolution Learned")
 st.write(
-    "Each block below shows the raw learned kernels (left) and the resulting filters/feature maps "
-    "aggregated across channels (right). The progression highlights how edges become textures and "
-    "eventually pet-specific shapes."
+    "Each block below highlights the aggregated filters (feature maps) that represent what each "
+    "convolutional stage is sensitive to. The filters grow from edge detectors up to pet-specific shapes."
 )
 
-conv_sections = [
-    ("Conv Layer 1", "Conv1_kernels.png", "conv1_filters.png"),
-    ("Conv Layer 2", "conv2_kernels.png", "conv2_filters_averaged.png"),
-    ("Conv Layer 3", "conv3_kernels.png", "conv3_filters_averaged.png"),
-    ("Conv Layer 4", "conv4_kernels.png", "conv4_filters_averaged.png"),
+conv_filters = [
+    ("Conv Layer 1 Filters", "conv1_filters.png"),
+    ("Conv Layer 2 Filters", "conv2_filters.png"),
+    ("Conv Layer 3 Filters", "conv3_filters.png"),
+    ("Conv Layer 4 Filters", "conv4_filters.png"),
 ]
 
-for title, kernel_file, filter_file in conv_sections:
+for title, filter_file in conv_filters:
     st.subheader(title)
-    kernel_img = load_image(kernel_file)
     filter_img = load_image(filter_file)
-    two_cols = st.columns(2)
-    if kernel_img:
-        two_cols[0].image(kernel_img, caption="Kernels", use_container_width=True)
     if filter_img:
-        two_cols[1].image(filter_img, caption="Filters / feature maps", use_container_width=True)
+        st.image(filter_img, caption="Aggregated feature maps", use_container_width=True)
 
 
 st.caption(
