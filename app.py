@@ -39,7 +39,7 @@ st.write(
 
 with st.sidebar:
     st.header("Final Snapshot")
-    st.metric("Accuracy", "96.94%")
+    st.metric("Accuracy", "92.54%")
     st.metric("Final Train Loss", "0.0831")
     st.metric("Final Val Loss", "8.586")
  
@@ -61,10 +61,10 @@ st.markdown(
 | model5.pth | 25 epochs | Train 0.1843, Val 0.3006 |
 | model6.pth | Reduced rotation aug to 7.5° | Train 0.0876, Val 0.3924 |
 | model7.pth | Restored 4th conv, rotation 10°, 25 epochs | Train 0.0831, Val 0.2234, Accuracy 0.9694 |
+| model8.pth | Realized there was a data leakage of train data into test data | Real accuracy: 0.9254
 """
 )
-st.caption("Note, these val_losses are averages from the total training process. \nEx. val_loss of 0.2234 in model7 correlated with val loss of 8.586 when not calculated with each training epoch"
-           )
+st.caption("NOTE: model8 is functionally model 7, I only had to retest accuracy after fixing data leakage, as the training process was okay.")
 
 st.success(
     "Lesson learned: the 50-epoch attemps drove the training loss down relentlessly but "
