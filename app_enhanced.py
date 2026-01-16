@@ -561,7 +561,7 @@ comparison_data = {
         "Label smoothing + AdamW + augmentation",
         "Adaptive pooling + residual blocks"
     ],
-    "Accuracy": ["~92%", "~90%", "95.12%", "94.74%", "95.82"],
+    "Accuracy": ["~92%", "~90%", "95.12%", "94.74%", "95.82%"],
     "Epochs": [10, 10, 20, 30, 30],
     "Parameters (FC)": ["~50K", "~200K", "~50K", "~50K", "~512"]
 }
