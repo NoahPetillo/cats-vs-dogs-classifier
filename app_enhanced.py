@@ -450,7 +450,7 @@ st.code(enhanced2_CNN_code, language='python', line_numbers=True)
 st.write(
     """    
     **Result:**  
-    Here I achieved considerably better results, with an accuracy of 95.82%, finally beating my last CNN implementation. Still, I knew it can improve. Below shows the loss, still relatively noisy approaching epoch 20, but much better than enhanced_model1. 
+    Here I achieved considerably better results, with an accuracy of 95.12%, finally beating my last CNN implementation. Still, I knew it can improve. Below shows the loss, still relatively noisy approaching epoch 20, but much better than enhanced_model1. 
     In my third attempt, I will implement a concept talked about in the paper, depthwise and pointwise convolution, but first I need to learn 
     what that means...
     """
@@ -527,6 +527,7 @@ self.fc1 = nn.Linear(256, 512)  # Clean and efficient!
 st.write("""
 This approach is actually more sophisticated than what's shown in the paper's Table I, 
 though it aligns with modern CNN best practices.
+Here, I achieved an accuracy of 95.82%.
 """)
 
 # Add loss graph for model 4 if you have it
@@ -560,7 +561,7 @@ comparison_data = {
         "Label smoothing + AdamW + augmentation",
         "Adaptive pooling + residual blocks"
     ],
-    "Accuracy": ["~92%", "~90%", "95.82%", "94.74%", "TBD"],
+    "Accuracy": ["~92%", "~90%", "95.12%", "94.74%", "95.82"],
     "Epochs": [10, 10, 20, 30, 30],
     "Parameters (FC)": ["~50K", "~200K", "~50K", "~50K", "~512"]
 }
