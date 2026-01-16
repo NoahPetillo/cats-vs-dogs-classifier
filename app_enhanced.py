@@ -1,5 +1,143 @@
 import streamlit as st
 from PIL import Image
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torchvision import transforms
+from pathlib import Path
+
+# ---------------------------
+# Model Architecture (from enhanced_cnn_train.py)
+# ---------------------------
+class enhanced_CNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        # Block 1
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, padding=1)
+        self.bn1   = nn.BatchNorm2d(64)
+        self.conv2 = nn.Conv2d(64, 64, kernel_size=3, padding=1)
+        self.bn2   = nn.BatchNorm2d(64)
+        self.pool1 = nn.MaxPool2d(2, 2)
+        self.drop1 = nn.Dropout(0.25)
+        self.proj1 = nn.Conv2d(3, 64, kernel_size=1)
+
+        # Block 2
+        self.conv3 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
+        self.bn3   = nn.BatchNorm2d(128)
+        self.conv4 = nn.Conv2d(128, 128, kernel_size=3, padding=1)
+        self.bn4   = nn.BatchNorm2d(128)
+        self.pool2 = nn.MaxPool2d(2, 2)
+        self.drop2 = nn.Dropout(0.25)
+        self.proj2 = nn.Conv2d(64, 128, kernel_size=1)
+
+        # Block 3
+        self.conv5 = nn.Conv2d(128, 256, kernel_size=3, padding=1)
+        self.bn5   = nn.BatchNorm2d(256)
+        self.conv6 = nn.Conv2d(256, 256, kernel_size=3, padding=1)
+        self.bn6   = nn.BatchNorm2d(256)
+        self.pool3 = nn.MaxPool2d(2, 2)
+        self.drop3 = nn.Dropout(0.25)
+        self.proj3 = nn.Conv2d(128, 256, kernel_size=1)
+
+        # Adaptive pooling
+        self.global_pool = nn.AdaptiveAvgPool2d((1,1))
+
+        # Fully connected
+        self.fc1 = nn.Linear(256, 512)
+        self.bn_fc = nn.BatchNorm1d(512)
+        self.fc2 = nn.Linear(512, 2)
+
+    def forward(self, x):
+        # Block 1
+        identity = self.proj1(x)
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = self.bn2(self.conv2(out))
+        out = F.relu(out + identity)
+        out = self.pool1(out)
+        out = self.drop1(out)
+
+        # Block 2
+        identity = self.proj2(out)
+        out = F.relu(self.bn3(self.conv3(out)))
+        out = self.bn4(self.conv4(out))
+        out = F.relu(out + identity)
+        out = self.pool2(out)
+        out = self.drop2(out)
+
+        # Block 3
+        identity = self.proj3(out)
+        out = F.relu(self.bn5(self.conv5(out)))
+        out = self.bn6(self.conv6(out))
+        out = F.relu(out + identity)
+        out = self.pool3(out)
+        out = self.drop3(out)
+
+        # Adaptive pooling
+        out = self.global_pool(out)
+
+        # FC
+        out = torch.flatten(out, 1)
+        out = F.relu(self.bn_fc(self.fc1(out)))
+        out = self.fc2(out)
+
+        return out
+
+
+# ---------------------------
+# Inference Functions
+# ---------------------------
+@st.cache_resource
+def load_model():
+    """Load the trained model with caching"""
+    device = torch.device("cpu")  # Use CPU for Streamlit deployment
+    model = enhanced_CNN()
+    
+    model_path = Path(__file__).parent / "enhanced_model" / "enhanced_model4.pth"
+    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.to(device)
+    model.eval()
+    
+    return model, device
+
+
+def get_transforms():
+    """Get the transforms used for inference"""
+    return transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                           std=[0.229, 0.224, 0.225]),
+    ])
+
+
+def predict_image(image, model, device, transform):
+    """Predict class for a single image"""
+    CLASS_NAMES = ["Cat", "Dog"]
+    
+    # Preprocess
+    img_tensor = transform(image).unsqueeze(0).to(device)
+    
+    # Predict
+    with torch.no_grad():
+        outputs = model(img_tensor)
+        probabilities = F.softmax(outputs, dim=1)
+        confidence, predicted = torch.max(probabilities, 1)
+    
+    predicted_class = CLASS_NAMES[predicted.item()]
+    confidence_score = confidence.item()
+    
+    prob_map = {
+        CLASS_NAMES[0]: probabilities[0][0].item(),
+        CLASS_NAMES[1]: probabilities[0][1].item()
+    }
+    
+    return predicted_class, confidence_score, prob_map
+
+
+# ---------------------------
+# Streamlit App
+# ---------------------------
 
 data_transform_code = """
 train_transforms = transforms.Compose([
@@ -467,6 +605,41 @@ Each experiment is documented here with code, results, and analysis.
 st.write("---")
 
 # ---------------------------
+# Try the Model Section
+# ---------------------------
+st.header("Try the Final Model Yourself")
+st.write("""
+Upload a cat or dog photo to see how the enhanced CNN model (enhanced_model4.pth) performs on real images.
+This model uses adaptive global pooling and residual connections.
+""")
+
+st.caption("""
+NOTE: Model works best with close up images of the animals face. It is much more likely to fail
+if there is a lot of noise or if the face is not visible.
+""")
+
+uploaded = st.file_uploader("Upload a cat or dog photo", type=["png", "jpg", "jpeg"])
+if uploaded:
+    preview = Image.open(uploaded).convert("RGB")
+    st.image(preview, caption="Your upload", use_container_width=True)
+    
+    with st.spinner("Running inference with enhanced_model4.pth..."):
+        model, device = load_model()
+        transform = get_transforms()
+        label, confidence, prob_map = predict_image(preview, model, device, transform)
+    
+    st.success(f"Prediction: **{label}** with {confidence * 100:.2f}% confidence.")
+    st.write("Class Probabilities:")
+    st.write({
+        "Cat": f"{prob_map['Cat'] * 100:.2f}%",
+        "Dog": f"{prob_map['Dog'] * 100:.2f}%",
+    })
+else:
+    st.info("Drop in a JPG or PNG to see what the trained network thinks.")
+
+st.write("---")
+
+# ---------------------------
 # Footer
 # ---------------------------
 st.header("Conclusion")
@@ -485,11 +658,6 @@ The research paper achieved 84.95% on CIFAR-10's 10-class problem. My implementa
 95%+ on the binary Cats vs Dogs classification, demonstrating successful adaptation of the 
 core principles to a different domain.
 
-**Try the working classifier:**  
-🔗 [Cats vs Dogs Classifier App](https://noahpetillo-cats-vs-dogs-classifier-app-uvevsk.streamlit.app/)
-
-**View the original research:**  
-📄 [Enhanced Convolutional Neural Networks for Improved Image Classification](https://arxiv.org/pdf/2502.00663)
 """)
 
 st.info("""
@@ -499,9 +667,17 @@ discuss CNN architectures, transfer learning, or computer vision projects!
 
 st.write("**Made by Noah Petillo** – January 2026")
 
-st.space()
-st.space()
+st.write("---")
 
+# ---------------------------
+# Future Experiments Section
+# ---------------------------
+st.header("🚀 Future Experiments")
+
+st.write("""
+This section will be updated as I continue to explore improvements and variations 
+on the enhanced CNN architecture. Check back for new experiments!
+""")
 
 st.info("""
 📝 **Coming Soon:**  
@@ -514,3 +690,14 @@ Future iterations will explore advanced techniques like:
 
 **Any new experiments will be documented below this line.**
 """)
+
+# ---------------------------
+# Placeholder for Future Experiments
+# ---------------------------
+# st.write("---")
+# st.header("Fifth Implementation - enhanced_model5.pth")
+# st.write("""
+# [Description of Model 5 will go here]
+# """)
+
+# Add your future experiments below this comment!
